@@ -7,6 +7,8 @@ import os
 import smtplib
 import getpass
 import json
+import subprocess
+from time import sleep
 
 config_path = os.path.join(os.getcwd(), '.smsnrc')
 smtp_host   = 'smtp.gmail.com'
@@ -78,6 +80,30 @@ class SMS_Notify:
         smtp.close()
 
 
+class Periodic_Check:
+
+    def __init__(self, host, delay):
+        self.host  = host
+        self.delay = delay
+
+    def wait(self):
+        sleep(self.delay)
+        self.check()
+
+    def check(self):
+        ping = subprocess.Popen(
+                ["ping", "-c", "2", self.host],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
+                )
+        out, error = ping.communicate()
+        self.fail() if out else self.wait()
+
+    def fail(self):
+        notify = SMS_Notify()
+        notify.send("{} is down".format(self.host))
+
+
 if __name__ == '__main__':
-    notify = SMS_Notify()
-    notify.send("oh hai")
+    pc = Periodic_Check('http://brdyorn.com', 60)
+    pc.check()
